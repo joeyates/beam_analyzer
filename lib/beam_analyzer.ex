@@ -13,16 +13,19 @@ defmodule BeamAnalyzer do
     code
   end
 
-  def attributes([item | rest], map) do
+  """
+  {:attribute, ??, type, metadata}
+  """
+  defp attributes([item | rest], map) do
     case item do
-      {:attribute, p1, type, metadata} ->
+      {:attribute, _, type, metadata} ->
          attributes(rest, Dict.put(map, type, metadata))
       _ ->
         attributes(rest, map)
     end
   end
 
-  def attributes([], map) do
+  defp attributes([], map) do
     map
   end
 
