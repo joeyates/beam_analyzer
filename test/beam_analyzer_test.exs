@@ -14,6 +14,16 @@ defmodule BeamAnalyzerTest do
 
   test ".exports lists exports", context do
     {:ok, exports} = BeamAnalyzer.exports(context[:binary])
-    assert exports == [:__info__, :amethod]
+    assert exports == [:__info__, :a_method]
+  end
+
+  test ".function_names", context do
+    {:ok, function_names} = BeamAnalyzer.function_names(context[:binary])
+    assert function_names == [:__info__, :a_private_method, :a_method]
+  end
+
+  test ".private_function_names", context do
+    {:ok, private_function_names} = BeamAnalyzer.private_function_names(context[:binary])
+    assert private_function_names == [:a_private_method]
   end
 end
