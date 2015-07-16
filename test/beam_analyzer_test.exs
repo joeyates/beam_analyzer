@@ -19,7 +19,7 @@ defmodule BeamAnalyzerTest do
 
   test ".function_names", context do
     {:ok, function_names} = BeamAnalyzer.function_names(context[:binary])
-    assert function_names == [:__info__, :a_private_method, :a_method]
+    assert Enum.sort(function_names) == [:__info__, :a_method, :a_private_method]
   end
 
   test ".private_function_names", context do
