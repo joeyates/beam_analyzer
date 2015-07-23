@@ -14,57 +14,43 @@ defmodule BeamAnalyzer do
   end
 
   """
-  {:attribute, ??, type, metadata}
+  http://www.erlang.org/doc/apps/erts/absform.html
+  function := {:function, line, name, arity, metadata}
+  metadata := [clause_1, clause_2, ...]
+  clause   := {:clause, line, params, guards, expressions}
   """
-  def attributes([item | rest]) do
-    case item do
-      {:attribute, _, type, metadata} ->
-        Dict.put(attributes(rest), type, metadata)
-      _ ->
-        attributes(rest)
-    end
+  defp do_function(module, name) do
+    abs = code(module)
+    Enum.find(
+      abs,
+      fn
+        {:function, _, n, _, metadata} ->
+          name == n
+        _ ->
+          false
+      end
+    )
   end
 
-  def attributes([]) do
-    %{}
-  end
-
-  def attributes(module) when is_binary(module) do
-    {:ok, attributes(code(module))}
-  end
-
-  """
-  {:function, ??, name, ??, metadata}
-  """
-  def functions([item | rest]) do
-    case item do
+  def function(module, name) do
+    result = do_function(module, name)
+    case result do
       {:function, _, name, _, metadata} ->
-        Dict.put(functions(rest), name, metadata)
+        {:ok, metadata}
       _ ->
-        functions(rest)
+        {:error, :not_found}
     end
   end
 
-  def functions([]) do
-    %{}
+  def functions(module) do
+    :erlang.get_module_info(module, :functions)
   end
 
-  def functions(module) when is_binary(module) do
-    {:ok, functions(code(module))}
+  def exports(module) do
+    :erlang.get_module_info(module, :exports)
   end
 
-  def exports(module) when is_binary(module) do
-    {:ok, attribs} = attributes(module)
-    {:ok, Dict.keys(attribs.export)}
-  end
-
-  def function_names(module) when is_binary(module) do
-    {:ok, Dict.keys(functions(code(module)))}
-  end
-
-  def private_function_names(module) when is_binary(module) do
-    {:ok, exports} = exports(module)
-    {:ok, function_names} = function_names(module)
-    {:ok, function_names -- exports}
+  def private_functions(module) do
+    functions(module) -- exports(module)
   end
 end

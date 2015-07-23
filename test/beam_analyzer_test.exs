@@ -3,27 +3,44 @@ defmodule BeamAnalyzerTest do
   alias BeamAnalyzer
 
   setup do
-    [{_, binary}] = Code.load_file("test/fixtures/foo.ex")
-    {:ok, [binary: binary]}
-  end
+    source_fixture_path = "test/fixtures/foo.ex"
+    [{module, binary}] = :elixir_compiler.file_to_path(source_fixture_path, ".")
 
-  test ".attributes lists attributes", context do
-    {:ok, attributes} = BeamAnalyzer.attributes(context[:binary])
-    assert Enum.sort(Dict.keys(attributes)) == [:compile, :export, :file, :module, :spec]
+    on_exit fn ->
+      File.rm("Elixir.Foo.beam")
+      # Remove module to avoid "redefining module Foo" warning
+      :code.purge(Foo)
+      :code.delete(Foo)
+      Code.unload_files([source_fixture_path])
+    end
+
+    {:ok, [module: module, binary: binary]}
   end
 
   test ".exports lists exports", context do
-    {:ok, exports} = BeamAnalyzer.exports(context[:binary])
-    assert exports == [:__info__, :a_method]
+    exports = BeamAnalyzer.exports(context[:module])
+    assert exports == [__info__: 1, a_method: 0, module_info: 0, module_info: 1]
   end
 
-  test ".function_names", context do
-    {:ok, function_names} = BeamAnalyzer.function_names(context[:binary])
-    assert Enum.sort(function_names) == [:__info__, :a_method, :a_private_method]
+  test ".functions lists all functions", context do
+    function_names = BeamAnalyzer.functions(context[:module])
+    assert Enum.sort(function_names) == [
+      __info__: 1, a_method: 0, a_private_method: 0, module_info: 0, module_info: 1
+    ]
   end
 
-  test ".private_function_names", context do
-    {:ok, private_function_names} = BeamAnalyzer.private_function_names(context[:binary])
-    assert private_function_names == [:a_private_method]
+  test ".private_functions lists private functions", context do
+    private_function_names = BeamAnalyzer.private_functions(context[:module])
+    assert private_function_names == [a_private_method: 0]
+  end
+
+  test ".function returns the clauses of a function", context do
+    {:ok, clauses} = BeamAnalyzer.function(context[:module], :a_private_method)
+    assert length(clauses) == 1
+    {:ok, clause} = Enum.fetch(clauses, 0)
+    {type, _, params, guards, _forms} = clause
+    assert type == :clause
+    assert params == []
+    assert guards == []
   end
 end
