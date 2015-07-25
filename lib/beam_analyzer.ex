@@ -5,12 +5,21 @@ defmodule BeamAnalyzer do
   Get a parsed tree of information about a BEAM file.
   """
 
-  defp code(module) do
+  defp code(binary) when is_binary(binary) do
     {:ok,
       {_,
         [abstract_code:
-          {:raw_abstract_v1, code}]}} = :beam_lib.chunks(module, [:abstract_code])
-    code
+          {:raw_abstract_v1, code}]}} = :beam_lib.chunks(binary, [:abstract_code])
+    {:ok, code}
+  end
+
+  defp code(module) do
+    case :code.get_object_code(module) do
+      {_module, binary, _filename} ->
+        code(binary)
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   """
@@ -20,25 +29,28 @@ defmodule BeamAnalyzer do
   clause   := {:clause, line, params, guards, expressions}
   """
   defp do_function(module, name) do
-    abs = code(module)
-    Enum.find(
-      abs,
-      fn
-        {:function, _, n, _, metadata} ->
-          name == n
-        _ ->
-          false
-      end
-    )
+    case code(module) do
+      {:ok, code} ->
+        Enum.find(
+          code,
+          fn
+            {:function, _, n, _, _metadata} ->
+              name == n
+            _ ->
+              false
+          end
+        )
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   def function(module, name) do
-    result = do_function(module, name)
-    case result do
-      {:function, _, name, _, metadata} ->
+    case do_function(module, name) do
+      {:function, _, _name, _, metadata} ->
         {:ok, metadata}
-      _ ->
-        {:error, :not_found}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

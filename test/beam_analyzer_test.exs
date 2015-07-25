@@ -4,10 +4,11 @@ defmodule BeamAnalyzerTest do
 
   setup do
     source_fixture_path = "test/fixtures/foo.ex"
-    [{module, binary}] = :elixir_compiler.file_to_path(source_fixture_path, ".")
+    build_path = "."
+    [{module, binary}] = :elixir_compiler.file_to_path(source_fixture_path, build_path)
 
     on_exit fn ->
-      File.rm("Elixir.Foo.beam")
+      File.rm(build_path <> "/Elixir.Foo.beam")
       # Remove module to avoid "redefining module Foo" warning
       :code.purge(Foo)
       :code.delete(Foo)
