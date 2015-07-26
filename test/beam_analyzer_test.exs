@@ -36,7 +36,7 @@ defmodule BeamAnalyzerTest do
   end
 
   test ".function returns the clauses of a function", context do
-    {:ok, clauses} = BeamAnalyzer.function(context[:module], :a_private_method)
+    {:ok, clauses} = BeamAnalyzer.function(context[:module], :a_private_method, 0)
     assert length(clauses) == 1
     {:ok, clause} = Enum.fetch(clauses, 0)
     {type, _, params, guards, _forms} = clause

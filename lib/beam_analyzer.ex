@@ -28,26 +28,32 @@ defmodule BeamAnalyzer do
   metadata := [clause_1, clause_2, ...]
   clause   := {:clause, line, params, guards, expressions}
   """
-  defp do_function(module, name) do
+  defp do_function(module, name, arity) do
     case code(module) do
       {:ok, code} ->
-        Enum.find(
+        function = Enum.find(
           code,
           fn
-            {:function, _, n, _, _metadata} ->
-              name == n
+            {:function, _, n, a, _metadata} ->
+              name == n and arity == a
             _ ->
               false
           end
         )
+        case function do
+          nil ->
+            {:error, :not_found}
+          _ ->
+            {:ok, function}
+        end
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  def function(module, name) do
-    case do_function(module, name) do
-      {:function, _, _name, _, metadata} ->
+  def function(module, name, arity) do
+    case do_function(module, name, arity) do
+      {:ok, {:function, _, _name, _, metadata}} ->
         {:ok, metadata}
       {:error, reason} ->
         {:error, reason}
